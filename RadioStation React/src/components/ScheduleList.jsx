@@ -2,43 +2,48 @@ import { useEffect, useState } from "react";
 import { getTodaySchedule, deleteEvent } from "../services/api";
 
 export default function ScheduleList() {
-  const [events, setEvents] = useState([
-    {
-      id: 1,
-      title: "Morning Jazz Hour",
-      startTime: "2025-10-09T08:00",
-      endTime: "2025-10-09T09:00",
-      hosts: ["Alice"],
-      guests: ["Bob"],
-    },
-  ]);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    // Uncomment this once your backend is running
-    // getTodaySchedule().then(setEvents);
+    const fetchSchedule = async () => {
+      setLoading(true);
+      try {
+        const data = await getTodaySchedule();
+        setEvents(data);
+        setError("");
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load schedule");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSchedule();
   }, []);
 
   const handleDelete = async (id) => {
-    await deleteEvent(id);
-    setEvents(events.filter(e => e.id !== id));
+    try {
+      await deleteEvent(id);
+      setEvents(events.filter((e) => e.id !== id));
+    } catch {
+      alert("Failed to delete event");
+    }
   };
 
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
+
   return (
-    <div>
-      <h2>Today's Schedule</h2>
-      {events.length === 0 && <p>No events scheduled today.</p>}
-      <ul>
-        {events.map(e => (
-          <li key={e.id} style={{ marginBottom: "10px" }}>
-            <strong>{e.title}</strong> ({new Date(e.startTime).toLocaleTimeString()} - {new Date(e.endTime).toLocaleTimeString()})
-            <br />
-            <small>Hosts: {e.hosts.join(", ")} | Guests: {e.guests.join(", ")}</small>
-            <br />
-            <button onClick={() => handleDelete(e.id)}>Delete</button>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <ul>
+      {events.map((e) => (
+        <li key={e.id}>
+          {e.title} ({new Date(e.startTime).toLocaleTimeString()} - {new Date(e.endTime).toLocaleTimeString()})
+          <button onClick={() => handleDelete(e.id)}>Delete</button>
+        </li>
+      ))}
+    </ul>
   );
 }
-// getTodaySchedule().then(setEvents);
